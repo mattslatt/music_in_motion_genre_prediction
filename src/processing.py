@@ -43,4 +43,22 @@ def track_features_and_labels(data):
        'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness',
        'instrumentalness', 'liveness', 'valence', 'tempo', 'time_signature']]
     X, y = tracks_artists_clean.iloc[:, 1:], tracks_artists_clean.iloc[:, :1]
-    return X, y
+    X_train, X_test, y_train, y_test = train_test_split(X, y)
+    return X_train, X_test, y_train, y_test
+
+def model_train(model, tracks_artists):
+
+
+def track_genre_predictions(track, model, num_genres = 3):
+    '''
+    input: single track from tracks_artists dataframe, using iloc[]
+    returns: list of most likely genres
+    '''
+    track_features = track[['danceability',
+       'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness',
+       'instrumentalness', 'liveness', 'valence', 'tempo', 'time_signature']]
+    classes = model.classes_
+    scores = model.predict_proba(np.array(track_features).reshape(1,-1))[0]
+    genre_predictions = classes[np.argsort(scores)[::-1]][:num_genres]
+    print(f'Most similar genres out of {len(classes)} options: \n{genre_predictions}')
+    return genre_predictions
