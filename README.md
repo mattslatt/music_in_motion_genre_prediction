@@ -1,4 +1,6 @@
 # Spotify Roam: A Hands-On Genre Exploration Tool
+![Genre word map](./img/roam_4_cloud.png)
+
 ## Expanding your music library
 Spotify is a huge platform, lots of money via advertising and subscription
 
@@ -11,8 +13,12 @@ Roam allows you to select between obscure, normal, and mainstream genre classifi
 For each genre that Roam shows you, you'll also get a list of rising star artists that are making a splash in that musical territory.
 
 ## Working with genres
-More than 5k genres listed
+More than 5k genres listed, the most popular of which are associated with hundreds of artists
+
+![Genre histogram map](./img/genre_count_hist.png)
+
 1 to 21 tags per artist, average 1.5
+
 
 ## Heirarchical clustering of genres
 Training a classifier for the 5,300+ genres isn't super helpful, too many super niche options

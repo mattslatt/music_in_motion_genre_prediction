@@ -47,6 +47,7 @@ def track_features_and_labels(data):
     return X_train, X_test, y_train, y_test
 
 def model_train(model, tracks_artists):
+    pass
 
 
 def track_genre_predictions(track, model, num_genres = 3):
