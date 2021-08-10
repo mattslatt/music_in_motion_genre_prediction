@@ -1,8 +1,24 @@
 import pandas as pd
+import numpy as np
+
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
+import pickle
+
+models_dir = '/content/drive/MyDrive/Colab Notebooks/spotify_genre/models'
 
 def clean_artists(data):
+    '''
+    input: raw artist dataframe
+    returns: cleaned artist dataframe with genre counts
+    * remove artists with no genre tags
+    * clean genre tags of brackets and quotes
+    * count number of tagged genres per artist
+    * split artists with multiple genre tags
+    * remove non-musical genres (reading, hoorspiel, etc.)
+    * 
+    '''
+    non_music = ['reading','hoerspiel','kleine hoerspiel','kindermusik','barnsagor']
     artist_genres = data[data['genres'] != '[]'].copy()
     artist_genres['genres_clean'] = artist_genres['genres'].str.strip("[]")
     artist_genres['genre_count'] = artist_genres['genres'].str.count(',') + 1
@@ -10,12 +26,23 @@ def clean_artists(data):
     artist_split['genres'] = artist_split['genres'].str.strip("'")
     artist_split['id_artists'] = artist_split['id']
     artist_split.drop(columns='genres_clean')
-    print('{} artists total'.format(data.shape[0]))
+    artist_split = artist_split[~artist_split['genres'].isin(non_music)]
+    print('{} total artists'.format(data.shape[0]))
     print('{} artists with labeled genres'.format(artist_genres.shape[0]))
     print('{} genre-artist pairs after processing'.format(artist_split.shape[0]))
     return artist_split
 
 def clean_tracks(data, max_artists=3):
+    '''
+    input: raw tracks dataframe
+    returns: cleaned tracks dataframe with tracks and their attributed artists,
+    duplicating tracks with multiple tagged artists
+    * remove tracks with no artist id
+    * clean artist ids of brackets
+    * artist count represents number of artists attributed to a given track
+    * remove tracks with more than 3 affiliated artists
+    * split tracks for each tagged artist
+    '''
     tracks = data[data['id_artists'] != '[]'].copy()
     tracks['id_artists_clean'] = tracks['id_artists'].str.strip("[]")
     tracks['artist_count'] = tracks['id_artists_clean'].str.count(',') + 1
@@ -23,43 +50,27 @@ def clean_tracks(data, max_artists=3):
     tracks_split = tracks_max_artists.assign(id_artists=tracks_max_artists['id_artists_clean'].str.split(', ')).explode('id_artists')
     tracks_split['id_artists'] = tracks_split['id_artists'].str.strip("'")
     tracks_split.drop(columns=['id_artists_clean'], inplace=True)
-    print('{} tracks total'.format(data.shape[0]))
+    print('{} total tracks'.format(data.shape[0]))
     print('{} tracks with {} or fewer artists'.format(tracks_max_artists.shape[0], max_artists))
     print('{} track-artist pairs after processing'.format(tracks_split.shape[0]))
     return tracks_split
 
-def top_x_genres(artist_split, num_genres = 50):
-    '''
-    input: processsed artist data (dataframe), number of most popular genres 
-    to include (int, default 50)
-    returns: list of most popular genres, artist data containing only those genres
-    '''
-    top_x = artist_split['genres'].value_counts()[:num_genres].index
-    artist_x_genres = artist_split[artist_split['genres'].isin(top_x)]
-    return top_x, artist_x_genres
-
-def track_features_and_labels(data):
-    tracks_artists_clean = data[['genres','danceability',
-       'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness',
-       'instrumentalness', 'liveness', 'valence', 'tempo', 'time_signature']]
-    X, y = tracks_artists_clean.iloc[:, 1:], tracks_artists_clean.iloc[:, :1]
-    X_train, X_test, y_train, y_test = train_test_split(X, y)
-    return X_train, X_test, y_train, y_test
-
-def model_train(model, tracks_artists):
-    pass
+def top_x_genres(artist_split, tracks_split, num_genres, obscurity=0):
+  '''
+  input: cleaned artist dataframe, tracks dataframe, number of most popular genres 
+  to include, and obscurity (number of most popular genres to remove from the top of the list)
+  returns: list of most popular genres, artist data containing only those genres
+  '''
+  tracks_artists = artist_split.merge(tracks_split, on='id_artists')
+  top_x = tracks_artists['genres'].value_counts()[obscurity:num_genres+obscurity].index
+  artist_x_genres = tracks_artists[tracks_artists['genres'].isin(top_x)]
+  if obscurity == 0:
+    print(f'{artist_x_genres.shape[0]} tracks from top {num_genres} genres')
+  else:
+    print(f'{artist_x_genres.shape[0]} tracks from top {num_genres} obscure genres')
+  return artist_x_genres
 
 
-def track_genre_predictions(track, model, num_genres = 3):
-    '''
-    input: single track from tracks_artists dataframe, using iloc[]
-    returns: list of most likely genres
-    '''
-    track_features = track[['danceability',
-       'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness',
-       'instrumentalness', 'liveness', 'valence', 'tempo', 'time_signature']]
-    classes = model.classes_
-    scores = model.predict_proba(np.array(track_features).reshape(1,-1))[0]
-    genre_predictions = classes[np.argsort(scores)[::-1]][:num_genres]
-    print(f'Most similar genres out of {len(classes)} options: \n{genre_predictions}')
-    return genre_predictions
+
+
+
